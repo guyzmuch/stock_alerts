@@ -1,0 +1,11 @@
+[stocks]
+ALCBX = "Cibox"
+ALO = "Alstom"
+AIR = "Airbus"
+
+[AWS]
+bucket_name = "my_bucket_for_test"
+
+[stock_api]
+url = ""
+api_key = ""
