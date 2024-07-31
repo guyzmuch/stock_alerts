@@ -8,6 +8,8 @@ use dotenv::dotenv;
 use csv;
 use chrono::{DateTime, Utc};
 use serde::{self, Deserialize};
+use tokio::runtime::Runtime;
+
 use stock_price_connector::StockPriceConnector;
 
 static CSV_FILE_HEADER: &str = "date,value\n";
@@ -32,7 +34,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     println!("config: \n{:?}", config);
 
-    let apiConnector = StockPriceConnector::new(&config)?;
+    let api_connector = StockPriceConnector::new(&config)?;
 
     if let Some(stocks) = config.get::<HashMap<String, Value>>("stocks").ok() {
         for (stock_reference, stock_name) in stocks {
@@ -44,6 +46,10 @@ fn main() -> Result<(), Box<dyn Error>> {
                     println!("result {:?}", result);
                 }
             }
+
+            // get the latest value
+            let rt = Runtime::new().unwrap();
+            let stock_current_value = rt.block_on(api_connector.get_stock_price(&stock_reference))?;
         }
     }
 

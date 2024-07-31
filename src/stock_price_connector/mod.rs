@@ -20,4 +20,14 @@ impl StockPriceConnector {
       api_key,
     })
   }
+
+  pub async fn get_stock_price(&self, symbol: &str) -> Result<f64, Box<dyn std::error::Error>> {
+      let url_for_call = self.api_url
+        .replace("{symbol}", symbol)
+        .replace("{api_key}", &self.api_key);
+
+      println!("url_for_call {}", url_for_call);
+
+      Ok(0.0)
+  }
 }
