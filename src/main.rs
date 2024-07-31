@@ -1,8 +1,8 @@
-use std::fs::{self, File};
-use std::io::Write;
+use std::{collections::HashMap, fs::{self, File}, io::Write};
+use config::{Config, Environment, Value};
 use std::error::Error;
+use dotenv::dotenv;
 use csv;
-use toml::Value;
 use chrono::{DateTime, Utc};
 use serde::{self, Deserialize};
 
@@ -15,12 +15,22 @@ struct StockHistory {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let config_as_string = fs::read_to_string("config.toml")?;
-    let config: Value = toml::from_str(&config_as_string)?;
+    // Load environment variables from the .env file
+    dotenv().ok();
+    
+    // Initialize the configuration builder
+    let builder = Config::builder()
+        .add_source(config::File::with_name("config"))
+        .add_source(Environment::with_prefix("st_stock"));
+ 
+    // Build the configuration
+    let config = builder.build()?;
 
-    if let Some(stocks) = config.get("stocks").and_then(|s| s.as_table()) {
+    println!("config: \n{:?}", config);
+
+    if let Some(stocks) = config.get::<HashMap<String, Value>>("stocks").ok() {
         for (stock_reference, stock_name) in stocks {
-            if let Some(stock_name_str) = stock_name.as_str() {
+            if let Some(stock_name_str) = stock_name.into_string().ok() {
                 println!("********");
                 println!("Stock history for the stock: {}", stock_name_str);
                 let mut previous_values = read_from_local(stock_name_str.to_string())?;
