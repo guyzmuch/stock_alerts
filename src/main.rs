@@ -1,10 +1,14 @@
+
+mod stock_price_connector;
+
 use std::{collections::HashMap, fs::{self, File}, io::Write};
-use config::{Config, Environment, Value};
 use std::error::Error;
+use config::{Config, Environment, Value};
 use dotenv::dotenv;
 use csv;
 use chrono::{DateTime, Utc};
 use serde::{self, Deserialize};
+use stock_price_connector::StockPriceConnector;
 
 static CSV_FILE_HEADER: &str = "date,value\n";
 
@@ -27,6 +31,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     let config = builder.build()?;
 
     println!("config: \n{:?}", config);
+
+    let apiConnector = StockPriceConnector::new(&config)?;
 
     if let Some(stocks) = config.get::<HashMap<String, Value>>("stocks").ok() {
         for (stock_reference, stock_name) in stocks {
