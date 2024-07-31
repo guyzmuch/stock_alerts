@@ -21,7 +21,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Initialize the configuration builder
     let builder = Config::builder()
         .add_source(config::File::with_name("config"))
-        .add_source(Environment::with_prefix("st_stock"));
+        .add_source(Environment::with_prefix("sa_stock"));
  
     // Build the configuration
     let config = builder.build()?;

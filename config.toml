@@ -7,5 +7,5 @@ AIR = "Airbus"
 bucket_name = "my_bucket_for_test"
 
 [stock_api]
-api_key = "${STOCK_API_KEY}"
-api_url = "${STOCK_API_URL}"
+api_key = "${SA_STOCK_API_KEY}"
+api_url = "${SA_STOCK_API_URL}"
