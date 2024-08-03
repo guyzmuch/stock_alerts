@@ -1,6 +1,6 @@
 
 mod stock_price_connector;
-
+use std::env;
 use std::{collections::HashMap, fs::{self, File}, io::Write};
 use std::error::Error;
 use config::{Config, Environment, Value};
@@ -24,10 +24,17 @@ fn main() -> Result<(), Box<dyn Error>> {
     // Load environment variables from the .env file
     dotenv().ok();
     
+    // Read and convert the environment variable to a boolean
+    let use_mock_data: bool = env::var("SA_STOCK_API_USE_MOCK_DATA")
+        .unwrap_or_else(|_| "false".to_string())
+        .parse()
+        .unwrap_or(false);
+    
     // Initialize the configuration builder
     let builder = Config::builder()
         .add_source(config::File::with_name("config"))
-        .add_source(Environment::with_prefix("sa_stock"));
+        .add_source(Environment::with_prefix("sa_stock"))
+        .set_override("use_mock_data", use_mock_data)?;
  
     // Build the configuration
     let config = builder.build()?;
