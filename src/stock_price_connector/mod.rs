@@ -31,8 +31,10 @@ impl StockPriceConnector {
         // Create a random number generator
         let mut rng = rand::thread_rng();
         let random_float_in_range: f64 = rng.gen_range(0.1..200.0);
+        let rounded_number_as_string = format!("{:.5}", random_float_in_range);
+        let rounded_number = rounded_number_as_string.parse::<f64>().unwrap();
         let now = Utc::now();
-        return Ok((now.to_rfc3339(), random_float_in_range));
+        return Ok((now.to_rfc3339(), rounded_number));
 
       }
 

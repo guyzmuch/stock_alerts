@@ -51,12 +51,16 @@ fn main() -> Result<(), Box<dyn Error>> {
                 let mut previous_values = read_from_local(stock_name_str.to_string())?;
                 for result in previous_values {
                     println!("result {:?}", result);
-                }
             }
 
             // get the latest value
             let rt = Runtime::new().unwrap();
-            let stock_current_value = rt.block_on(api_connector.get_stock_price(&stock_reference))?;
+                let (stock_date, stock_value) = rt.block_on(
+                    api_connector.get_stock_price(&stock_reference)
+                )?;
+                
+                write_local(stock_name_str, stock_date, stock_value)?;
+            }
         }
     }
 
@@ -94,6 +98,18 @@ fn read_from_local(stock_name: String) -> Result<Vec<StockHistory>, Box<dyn Erro
     }
 
     Ok(stock_histories)
+}
+
+fn write_local(stock_name: String, stock_date: String, stock_value: f64) -> Result<(), Box<dyn Error>> {
+    // file should have been created in the read_from_local, so no need to verify it here
+    let file_path = format!("local/{}.csv", stock_name.to_lowercase());
+    let mut file = std::fs::OpenOptions::new()
+        .append(true)
+        .open(file_path)?;
+
+    file.write_all(format!("{},{}\n", stock_date, stock_value).as_bytes())?;
+
+    Ok(())
 }
 
 fn read_from_s3() {
