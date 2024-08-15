@@ -18,6 +18,18 @@ where
 }
 
 #[derive(Debug, Deserialize)]
+struct AlphaVantageErrorResponse {
+    #[serde(rename = "Error Message")]
+    error_message: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct AlphaVantageInformationResponse {
+    #[serde(rename = "Information")]
+    information_message: String,
+}
+
+#[derive(Debug, Deserialize)]
 struct AlphaVantageResponse {
     #[serde(rename = "Global Quote")]
     global_quote: GlobalQuote,
@@ -47,6 +59,15 @@ struct GlobalQuote {
     change_percent: String,
 }
 
+#[derive(Deserialize, Debug)]
+#[serde(untagged)]
+enum AlphaVantageResult {
+    Response(AlphaVantageResponse),
+    Information(AlphaVantageInformationResponse),
+    Error(AlphaVantageErrorResponse),
+}
+
+
 pub struct StockPriceConnector {
   use_mock: bool,
   api_url: String,
@@ -72,7 +93,7 @@ impl StockPriceConnector {
   }
 
   
-  /* List of error response from alpha Vantage API
+  /* List of errors response from alpha Vantage API (because HTTP code is 200 even for errors)
   rawResponse {
       "Information": "Thank you for using Alpha Vantage! Our standard API rate limit is 25 requests per day. Please subscribe to any of the premium plans at https://www.alphavantage.co/premium/ to instantly remove all daily rate limits."
   } 
@@ -104,12 +125,21 @@ impl StockPriceConnector {
         Ok(response) => {
           let raw_response = response.text().await?;
 
-          let response_json: AlphaVantageResponse = serde_json::from_str(&raw_response)?;
-
+          match serde_json::from_str(&raw_response)? {
+            AlphaVantageResult::Response(response_json) => {  
           Ok((response_json.global_quote.latest_trading_day, response_json.global_quote.price))
+            },
+            AlphaVantageResult::Information(info_response) =>  {
+              Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, "API rate limit reached")))
+            },
+            AlphaVantageResult::Error(error_response) => {
+              Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, "Invalid API key")))
+            },
+            _ => Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, "Error deserializing the request")))
+          }
         },
         Err(_) => {
-            return Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, "Failed to create file")));
+            return Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, "Failed to fetch the stock information")));
         }
       }
           
