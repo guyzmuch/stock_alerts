@@ -126,6 +126,7 @@ impl StockPriceConnector {
         Ok(response) => {
           let raw_response = response.text().await?;
 
+          // Parsing the result from the API, and converting it to the correct format
           match serde_json::from_str(&raw_response)? {
             AlphaVantageResult::Response(response_json) => {  
               let parsing_latest_trading_day = NaiveDate::parse_from_str(&response_json.global_quote.latest_trading_day, "%Y-%m-%d")?;
