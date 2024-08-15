@@ -1,7 +1,8 @@
 use rand::Rng;
-use chrono::Utc;
+use chrono::{NaiveDate, Utc, DateTime};
+use chrono::offset::TimeZone;
 use reqwest;
-use serde::Deserialize;
+use serde::{Deserialize};
 use config::{Config};
 
 use serde::de::{self, Deserializer};
@@ -127,7 +128,10 @@ impl StockPriceConnector {
 
           match serde_json::from_str(&raw_response)? {
             AlphaVantageResult::Response(response_json) => {  
-          Ok((response_json.global_quote.latest_trading_day, response_json.global_quote.price))
+              let parsing_latest_trading_day = NaiveDate::parse_from_str(&response_json.global_quote.latest_trading_day, "%Y-%m-%d")?;
+              let latest_trading_day = Utc.from_utc_datetime(&parsing_latest_trading_day.and_hms_opt(17, 0, 0).ok_or("Invalid time")?);
+              let formated_latest_trading_day = latest_trading_day.to_rfc3339();
+              Ok((formated_latest_trading_day, response_json.global_quote.price))
             },
             AlphaVantageResult::Information(info_response) =>  {
               Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, "API rate limit reached")))
