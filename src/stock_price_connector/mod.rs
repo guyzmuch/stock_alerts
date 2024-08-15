@@ -1,6 +1,51 @@
 use rand::Rng;
 use chrono::Utc;
+use reqwest;
+use serde::Deserialize;
 use config::{Config};
+
+use serde::de::{self, Deserializer};
+use std::str::FromStr;
+
+fn from_str<'de, D, T>(deserializer: D) -> Result<T, D::Error>
+where
+    D: Deserializer<'de>,
+    T: FromStr,
+    T::Err: std::fmt::Display,
+{
+    let s = String::deserialize(deserializer)?;
+    s.parse::<T>().map_err(de::Error::custom)
+}
+
+#[derive(Debug, Deserialize)]
+struct AlphaVantageResponse {
+    #[serde(rename = "Global Quote")]
+    global_quote: GlobalQuote,
+}
+
+#[derive(Debug, Deserialize)]
+struct GlobalQuote {
+    #[serde(rename = "01. symbol")]
+    symbol: String,
+    #[serde(rename = "02. open", deserialize_with = "from_str")]
+    open: f64,
+    #[serde(rename = "03. high", deserialize_with = "from_str")]
+    high: f64,
+    #[serde(rename = "04. low", deserialize_with = "from_str")]
+    low: f64,
+    #[serde(rename = "05. price", deserialize_with = "from_str")]
+    price: f64,
+    #[serde(rename = "06. volume", deserialize_with = "from_str")]
+    volume: u64,
+    #[serde(rename = "07. latest trading day")]
+    latest_trading_day: String,
+    #[serde(rename = "08. previous close", deserialize_with = "from_str")]
+    previous_close: f64,
+    #[serde(rename = "09. change", deserialize_with = "from_str")]
+    change: f64,
+    #[serde(rename = "10. change percent")]
+    change_percent: String,
+}
 
 pub struct StockPriceConnector {
   use_mock: bool,
@@ -26,6 +71,19 @@ impl StockPriceConnector {
     })
   }
 
+  
+  /* List of error response from alpha Vantage API
+  rawResponse {
+      "Information": "Thank you for using Alpha Vantage! Our standard API rate limit is 25 requests per day. Please subscribe to any of the premium plans at https://www.alphavantage.co/premium/ to instantly remove all daily rate limits."
+  } 
+  rawResponse {
+      "Error Message": "the parameter apikey is invalid or missing. Please claim your free API key on (https://www.alphavantage.co/support/#api-key). It should take less than 20 seconds."
+  }
+  rawResponse {
+    "Error Message": "Invalid API call. Please retry or visit the documentation (https://www.alphavantage.co/documentation/) for GLOBAL_QUOTE."
+  }
+  */
+
   pub async fn get_stock_price(&self, symbol: &str) -> Result<(String, f64), Box<dyn std::error::Error>> {
       if self.use_mock {
         // Create a random number generator
@@ -42,8 +100,18 @@ impl StockPriceConnector {
         .replace("{symbol}", symbol)
         .replace("{api_key}", &self.api_key);
 
-      println!("url_for_call {}", url_for_call);
+      match reqwest::get(&url_for_call).await {
+        Ok(response) => {
+          let raw_response = response.text().await?;
 
-      Ok(0.0)
+          let response_json: AlphaVantageResponse = serde_json::from_str(&raw_response)?;
+
+          Ok((response_json.global_quote.latest_trading_day, response_json.global_quote.price))
+        },
+        Err(_) => {
+            return Err(Box::new(std::io::Error::new(std::io::ErrorKind::Other, "Failed to create file")));
+        }
+      }
+          
   }
 }
