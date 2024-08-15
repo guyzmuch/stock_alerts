@@ -6,6 +6,7 @@ ALO = "Alstom"
 AIR = "Airbus"
 
 [AWS]
+use_aws = "${SA_STOCK_API_USE_AWS}"
 bucket_name = "my_bucket_for_test"
 
 [stock_api]
